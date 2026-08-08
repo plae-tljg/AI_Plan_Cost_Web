@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM 价格对比 · AI Plan Comparison</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <h1>LLM 价格对比</h1>
+      <p class="sub">
+        统一基准：每百万 token · 输入(命中缓存) / 输入(未命中) / 输出 三列 · 货币 USD/CNY 可切换
+      </p>
+      <div class="meta-row">
+        <span id="meta-updated" class="chip">加载中…</span>
+        <span id="meta-fx" class="chip"></span>
+        <span id="meta-live" class="chip hidden">OpenRouter 实时直连</span>
+        <button id="btn-refresh" class="chip btn">刷新(直连 OpenRouter)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel calc" id="calc-panel">
+      <h2>工作量成本计算器</h2>
+      <p class="hint">填入每月用量, 自动按 输入×单价 + 输出×单价 估算各模型月成本。</p>
+      <label>每月输入 token (百万) <input id="calc-in" type="number" min="0" step="1" value="100" /></label>
+      <label>每月输出 token (百万) <input id="calc-out" type="number" min="0" step="1" value="10" /></label>
+      <label>缓存命中比例 % <input id="calc-hit" type="number" min="0" max="100" step="1" value="0" /></label>
+      <label>月预算 (选填, 单位=当前货币) <input id="calc-budget" type="number" min="0" step="1" value="" placeholder="留空则只看成本" /></label>
+
+      <p class="hint" style="margin-top:12px"><b>典型用户一键填入</b>(填完点应用):</p>
+      <div class="preset-row" id="workloads"></div>
+
+      <button id="btn-calc" class="btn primary">应用工作量</button>
+      <button id="btn-calc-clear" class="btn ghost">清除</button>
+      <p class="hint" id="calc-result"></p>
+    </aside>
+
+    <section class="panel table-wrap">
+      <div class="toolbar">
+        <input id="f-search" type="search" placeholder="搜索模型名…" />
+        <select id="f-provider"><option value="">厂商: 全部</option></select>
+        <select id="f-channel">
+          <option value="">渠道: 全部</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="official">官方直销</option>
+        </select>
+        <select id="f-modality"><option value="">模态: 全部</option></select>
+        <select id="f-size" title="隐藏名字里带参数量且确认小于阈值的模型; 未知大小的保持可见">
+          <option value="0">规模: 全部</option>
+          <option value="10">规模: ≥10B</option>
+          <option value="30">规模: ≥30B</option>
+          <option value="70">规模: ≥70B</option>
+        </select>
+        <label class="chk"><input id="f-featured" type="checkbox" /> 只看精选</label>
+        <label class="chk">
+          货币
+          <select id="f-currency">
+            <option value="usd">USD</option>
+            <option value="cny">CNY</option>
+          </select>
+        </label>
+        <label class="chk fx">FX
+          <input id="f-fx" type="number" step="0.01" min="0.1" value="7.2" title="CNY per 1 USD, 仅用于展示换算" />
+        </label>
+        <span id="row-count" class="chip"></span>
+      </div>
+
+      <div class="preset-row">
+        <span class="plabel">价格口径:</span>
+        <span class="badge or">OR·USD</span><span class="plabel">=OpenRouter 美元挂牌, 显示人民币为 ≈ 换算</span>
+        <span class="badge off">官方·CNY</span><span class="plabel">=官方人民币原价(精确)</span>
+        <span class="badge off">官方·USD</span><span class="plabel">=官方美元原价, 显示人民币为 ≈ 换算</span>
+      </div>
+
+      <div class="preset-row">
+        <span class="plabel">预设视角:</span>
+        <button class="chip btn preset-btn" data-preset="free" title="只看免费模型">免费</button>
+        <button class="chip btn preset-btn" data-preset="multimodal" title="只看多模态(图/音/视频)">多模态</button>
+        <button class="chip btn preset-btn" data-preset="cheap" title="常见性价比模型(DeepSeek/MiMo/MiniMax 等)">便宜精选</button>
+        <button class="chip btn preset-btn" data-preset="clear" title="清除预设视角">全部</button>
+      </div>
+
+      <div class="table-scroll">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th data-k="model" class="srt">模型</th>
+              <th data-k="provider" class="srt">厂商</th>
+              <th data-k="channel" class="srt">渠道</th>
+              <th data-k="input_cache_hit" class="srt num" title="输入 命中缓存 / 百万token">输入(命中)</th>
+              <th data-k="input_cache_miss" class="srt num" title="输入 未命中 / 百万token">输入(未命中)</th>
+              <th data-k="output" class="srt num" title="输出 / 百万token">输出</th>
+              <th data-k="cost" class="srt num" title="按计算器工作量估算的月成本">月成本</th>
+              <th data-k="context" class="srt num">上下文</th>
+              <th data-k="modality" class="srt">模态</th>
+              <th data-k="benchmark" class="srt">Bench</th>
+              <th>评价</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="panel tips">
+    <h2>怎么看这些数字</h2>
+    <ul id="tips"></ul>
+    <p class="muted">
+      数据来源: OpenRouter API + 官方定价页(DeepSeek/MiniMax/Xiaomi MiMo)。官方价存于 <code>data/*.json</code> 缓存,
+      运行 <code>npm run fetch</code> 即更新。OpenRouter 价在页面加载时可实时直连刷新。
+    </p>
+  </footer>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

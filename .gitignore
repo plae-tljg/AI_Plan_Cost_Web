@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+_site/
+# 抓取产物: 不进入 main, 只进入 gh-pages 部署分支
+data/
+assets/data.js

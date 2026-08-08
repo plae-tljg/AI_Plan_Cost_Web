@@ -1,0 +1,10 @@
+{
+  "name": "ai-plan-comparison",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "LLM price comparison: fetch + normalize pricing from OpenRouter & official sources into static JSON, rendered by a zero-backend static page.",
+  "scripts": {
+    "fetch": "node scripts/fetch.js"
+  }
+}

@@ -1,0 +1,64 @@
+name: Fetch LLM prices
+
+on:
+  schedule:
+    # 每天 UTC 02:17 ≈ 北京时间 10:17 自动更新一次
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: price-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch pricing data
+        run: npm run fetch
+
+      - name: Prepare static site
+        run: |
+          mkdir -p _site
+          cp -r index.html assets _site/
+
+      # main 只保留代码/结构; 站点产物(含价格数据)只进 gh-pages 分支。
+      # gh-pages 每次只在内容确实变化时新增一个 commit -> 天然就是价格历史。
+      - name: Deploy to gh-pages (commit only when changed)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          WORK=/tmp/ghpages
+          URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code "$URL" refs/heads/gh-pages >/dev/null 2>&1; then
+            git clone --single-branch --branch gh-pages "$URL" "$WORK"
+          else
+            git init -b gh-pages "$WORK"
+            git -C "$WORK" remote add origin "$URL"
+          fi
+          rm -rf "$WORK"/*
+          cp -r _site/. "$WORK"/
+          cd "$WORK"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No site change since last deploy — skipping commit"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "deploy: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin gh-pages

@@ -1,0 +1,110 @@
+{
+  "currency_default": "cny",
+  "fx": {
+    "fallback_usd_per_cny": 7.2,
+    "rate_path": "rates.CNY",
+    "round_to": 3,
+    "note": "汇率由抓取脚本每天自动更新(sources.fx); 抓取失败时回退 fallback_usd_per_cny。页面 USD/CNY 切换用此值换算展示。"
+  },
+  "sources": {
+    "fx": {
+      "url": "https://open.er-api.com/v6/latest/USD"
+    },
+    "openrouter": {
+      "url": "https://openrouter.ai/api/v1/models"
+    },
+    "deepseek": {
+      "url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+      "note": "中文定价页, 直接抓官方人民币价格(元/百万token)"
+    },
+    "minimax": {
+      "index_url": "https://platform.minimaxi.com/docs/llms.txt",
+      "pricing_page": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md"
+    },
+    "xiaomi": {
+      "url": "https://mimo.mi.com/docs/price/pay-as-you-go"
+    }
+  },
+  "featured": [
+    { "id": "deepseek/deepseek-v4-flash", "label": "DeepSeek V4 Flash", "note": "当前版本官方行 + OR(0423 旧版)" },
+    { "id": "deepseek/deepseek-v4-flash-0731", "label": "DeepSeek V4 Flash (0731)", "note": "当前版, OR 比官方更便宜" },
+    { "id": "minimax/minimax-m3", "label": "MiniMax M3", "note": "Agent 强, 官方五折" },
+    { "id": "minimax/minimax-m2.7", "label": "MiniMax M2.7", "note": "性价比之选" },
+    { "id": "xiaomi/mimo-v2.5", "label": "MiMo V2.5", "note": "全模态, 缓存命中极便宜" },
+    { "id": "meituan/longcat-2.0", "label": "Longcat 2.0", "note": "美团, 输出 $1.2/M" },
+    { "id": "qwen/qwen3.7-flash", "label": "Qwen3.7 Flash", "note": "多模态 + 1M 上下文" },
+    { "id": "qwen/qwen3-32b", "label": "Qwen3 32B", "note": "" },
+    { "id": "qwen/qwen3-coder-30b-a3b-instruct", "label": "Qwen3 Coder 30B", "note": "编程向" },
+    { "id": "openai/gpt-oss-20b", "label": "GPT-OSS 20B", "note": "开源系, 便宜" },
+    { "id": "openai/gpt-oss-120b", "label": "GPT-OSS 120B", "note": "更强一档" },
+    { "id": "tencent/hy3-preview", "label": "Tencent HY3", "note": "" },
+    { "id": "inclusionai/ling-2.6-flash", "label": "Ling 2.6 Flash", "note": "最便宜的垃圾任务模型" },
+    { "id": "inclusionai/ling-3.0-flash", "label": "Ling 3.0 Flash", "note": "" },
+    { "id": "google/gemma-4-31b-it", "label": "Gemma 4 31B", "note": "多模态" },
+    { "id": "google/gemma-3-12b-it", "label": "Gemma 3 12B", "note": "多模态" },
+    { "id": "mistralai/mistral-small-3.2-24b-instruct", "label": "Mistral Small 3.2", "note": "" },
+    { "id": "openai/gpt-5-nano", "label": "GPT-5 Nano", "note": "" }
+  ],
+  "workload_presets": {
+    "coder": {
+      "label": "编程 Agent",
+      "desc": "Claude Code / Codex / Cline 这类编码 Agent: 长会话、大量输出、缓存中等",
+      "in": 300,
+      "out": 60,
+      "hit": 30
+    },
+    "agent": {
+      "label": "日常 Agent",
+      "desc": "OpenClaw / Hermes 这类生活助手: 多轮工具调用、上下文复用多、输出偏少",
+      "in": 500,
+      "out": 20,
+      "hit": 60
+    },
+    "batch": {
+      "label": "批量/垃圾任务",
+      "desc": "打标签、分类、摘要等吞吐任务: 输入固定、输出极少、可关缓存",
+      "in": 100,
+      "out": 5,
+      "hit": 10
+    },
+    "rag": {
+      "label": "阅读/检索问答",
+      "desc": "RAG: 输入巨大、输出少、命中缓存极高",
+      "in": 800,
+      "out": 8,
+      "hit": 80
+    }
+  },
+  "model_family_overrides": {
+    "deepseek-v4-flash-0731": "deepseek-v4-flash"
+  },
+  "model_comments": {
+    "xiaomi/mimo-v2.5": "全模态; OpenRouter 缓存命中价全市场最低。官方点数套餐是坑: 输出≈200 credits/token, 别买积分",
+    "xiaomi/mimo-v2.5-pro": "旗舰级 Agent 性能, 但输出价是 v2.5 的 3 倍, 非重活没必要",
+    "deepseek/deepseek-v4-flash": "官方只提供当前版 0731(¥1/¥2); OpenRouter 上不带版本号的这个名字是旧版0423(输出$0.28≈¥1.89), 要当前版选 -0731($0.18≈¥1.22)",
+    "deepseek/deepseek-v4-flash-0731": "当前官方版本(0731), 官方在售的就这一版; OpenRouter 挂牌比官方更便宜(输出≈¥1.22 vs 官方¥2), 当前最划算",
+    "minimax/minimax-m3": "Agent/工具调用强; 官方长期五折; 量大建议走 Token Plan 订阅而非按量",
+    "minimax/minimax-m2.7": "性价比之选; 官方 vs OpenRouter 谁便宜用谁",
+    "inclusionai/ling-2.6-flash": "全场最便宜; 小模型, 仅适合垃圾/吞吐任务",
+    "inclusionai/ling-3.0-flash": "便宜的小模型, 同上",
+    "openai/gpt-oss-20b": "OpenAI 开源系, 便宜稳定, 编程够用",
+    "openai/gpt-oss-120b": "更强的开源档, 价格仍很低",
+    "qwen/qwen3.7-flash": "国产多模态 + 1M 上下文, 生态好, 便宜",
+    "qwen/qwen3-32b": "国产通用, 便宜, 编码不差",
+    "qwen/qwen3-coder-30b-a3b-instruct": "编程向, 便宜",
+    "tencent/hy3-preview": "预览版, 价格/能力随时可能变动",
+    "mistralai/mistral-small-3.2-24b-instruct": "中规中矩, 免费/低价档偶尔有",
+    "google/gemma-4-31b-it": "开源多模态, 常有免费档",
+    "google/gemma-3-12b-it": "开源多模态, 常有免费档",
+    "openai/gpt-5-nano": "OpenAI 最便宜档, 轻度任务够用"
+  },
+  "tips": [
+    "价格口径标注: OR·USD=OpenRouter 美元挂牌(显示人民币为 ≈ 换算值); 官方·CNY=官方人民币原价(精确); 官方·USD=官方美元原价(显示人民币为 ≈ 换算值)。比较时请同口径对比。",
+    "对比基准: 统一成 每百万token 价格, 且必须拆开「输入(命中缓存)/输入(未命中)/输出」三列。货币可在工具栏切换 USD/CNY, 汇率每天自动抓取。",
+    "预设视角按钮: 免费 / 多模态 / 便宜精选(DeepSeek/MiniMax/MiMo/Longcat 等, 官方+OR 都算) 一键切换; 还能叠加搜索、厂商、渠道筛选。",
+    "模型规模筛子只隐藏「名字里带参数量且确认小于阈值」的模型; 名字里没标注参数量的(deepseek/mimo/minimax/longcat 等)保持可见。",
+    "计算器有四种典型用户预设(编程 Agent / 日常 Agent / 批量 / RAG), 填好典型用量, 帮你选对模型。",
+    "OpenRouter 价 ≈ 官方价(如 MiMo V2.5 两边都是 $0.14/$0.28)。官方「点数/积分」套餐是另一套计量: 小米 1 token ≈ 2 credits(V2.5), 输出按 200 credits/token 扣——买积分前先换算。",
+    "评价列是人工注释 + 自动标签(免费/多模态/超低价/无benchmark), 供快速判断; 不代表任何投资建议。"
+  ]
+}
