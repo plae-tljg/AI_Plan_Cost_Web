@@ -17,7 +17,7 @@
     currency: config.currency_default || 'usd',
     fx: bundled.meta.fx || config.fx?.fallback_usd_per_cny || 7.2,
     sort: { key: 'output', dir: 1 },
-    filters: { q: '', provider: '', channel: '', modality: '', featured: false, free: false, multimodal: false },
+    filters: { q: '', provider: '', channel: '', modality: '', featured: false, free: false, multimodal: false, minSize: 0 },
     calc: null, // { in, out, hit, budget } 或 null
     live: false,
   };
@@ -34,9 +34,35 @@
 
   const MOD_SHORT = { text: '文', image: '图', audio: '音', video: '视', file: '文件' };
   const featuredKeys = new Set((config.featured || []).map((f) => f.id));
+  const familyOverrides = config.model_family_overrides || {};
+
+  // 家族键: 同一模型的不同版本/渠道归到同一族, 用于精选与"更便宜"对比
+  function familyOf(e) {
+    const base = familyOverrides[e.model] || e.model;
+    return `${e.provider}/${base}`;
+  }
 
   function isFeatured(e) {
-    return e.channel === 'openrouter' && featuredKeys.has(`${e.provider}/${e.model}`);
+    return featuredKeys.has(familyOf(e));
+  }
+
+  const SIZE_RE = /(\d+(?:\.\d+)?)\s*b\b/i;
+  function sizeOf(e) {
+    const m = SIZE_RE.exec(e.model);
+    return m ? parseFloat(m[1]) : null;
+  }
+
+  function extractVersion(m) {
+    const slug = m.canonical_slug || m.id || '';
+    const m8 = slug.match(/-(\d{8})$/);
+    if (m8) {
+      const d = m8[1];
+      return `${d.slice(4, 6)}${d.slice(6, 8)}`;
+    }
+    const id = m.id || '';
+    const m4 = id.match(/-(\d{2})(\d{2})$/);
+    if (m4) return m4[1] + m4[2];
+    return null;
   }
 
   function isMultimodal(e) {
@@ -110,6 +136,7 @@
           channel: 'openrouter',
           source: 'openrouter',
           origin_currency: 'usd',
+          version: extractVersion(m),
           input_cache_hit: hit,
           input_cache_miss: miss * 1e6,
           output: out * 1e6,
@@ -154,7 +181,7 @@
   }
 
   function filtered() {
-    const { q, provider, channel, modality, featured, free, multimodal } = state.filters;
+    const { q, provider, channel, modality, featured, free, multimodal, minSize } = state.filters;
     const ql = q.trim().toLowerCase();
     let list = [...state.models, ...state.official];
     list = list.filter((e) => {
@@ -164,16 +191,21 @@
       if (featured && !isFeatured(e)) return false;
       if (free && !e.free) return false;
       if (multimodal && !isMultimodal(e)) return false;
+      if (minSize) {
+        const sz = sizeOf(e);
+        // 只隐藏"确认"小于阈值的; 名字里无参数量(未知)的保持可见
+        if (sz != null && sz < minSize) return false;
+      }
       if (ql) {
         const hay = `${e.model} ${e.provider} ${e.note || ''} ${e.channel}`.toLowerCase();
         if (!hay.includes(ql)) return false;
       }
       return true;
     });
-    // 同族(厂商+模型)在多个渠道时, 只标出严格更便宜的渠道
+    // 同族(厂商+模型, 含版本映射)在多个渠道时, 只标出严格更便宜的渠道
     const fam = new Map();
     for (const e of list) {
-      const key = `${e.provider}/${e.model}`;
+      const key = familyOf(e);
       let rec = fam.get(key);
       if (!rec) {
         rec = { min: Infinity, max: -Infinity, channels: new Set() };
@@ -184,7 +216,7 @@
       rec.channels.add(e.channel);
     }
     for (const e of list) {
-      const rec = fam.get(`${e.provider}/${e.model}`);
+      const rec = fam.get(familyOf(e));
       e._cheapestChannel =
         rec.channels.size > 1 && rec.min < rec.max && e.output === rec.min;
     }
@@ -276,8 +308,10 @@
           e._budgetOut != null ? ` <span class="muted" title="预算内可承担的月输出">(${fmtCtx(e._budgetOut * 1e6)}out)</span>` : '';
         costTd = `<td class="num cost"><span class="price ${cls}">${t}</span>${budgetNote}</td>`;
       }
+      const verTag = e.version ? `<span class="muted">(${e.version})</span>` : '';
+      const szTag = sizeOf(e) != null ? `<span class="muted">${sizeOf(e)}B</span>` : '';
       return `<tr>
-        <td class="model">${e.model} ${cheapChip} ${isFeatured(e) ? '<span class="badge bench" title="精选短名单">★</span>' : ''}</td>
+        <td class="model">${e.model} ${verTag} ${szTag} ${cheapChip} ${isFeatured(e) ? '<span class="badge bench" title="精选短名单">★</span>' : ''}</td>
         <td class="provider">${e.provider}</td>
         <td>${channelBadge(e)}</td>
         ${priceCell(e, 'input_cache_hit', mins.input_cache_hit)}
@@ -398,6 +432,10 @@
     });
     $('#f-modality').addEventListener('change', (ev) => {
       state.filters.modality = ev.target.value;
+      render();
+    });
+    $('#f-size').addEventListener('change', (ev) => {
+      state.filters.minSize = parseFloat(ev.target.value) || 0;
       render();
     });
     $('#f-featured').addEventListener('change', (ev) => {
