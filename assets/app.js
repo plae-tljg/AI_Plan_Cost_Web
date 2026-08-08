@@ -57,14 +57,16 @@
     return parts.join(' · ');
   }
 
-  function fmtPrice(v) {
+  function fmtPrice(v, exact) {
     if (v == null) return '—';
     const x = state.currency === 'cny' ? v * state.fx : v;
     const sym = state.currency === 'cny' ? '¥' : '$';
-    if (x >= 100) return sym + x.toLocaleString('en-US', { maximumFractionDigits: 0 });
-    if (x >= 1) return sym + x.toFixed(2);
-    if (x >= 0.01) return sym + x.toFixed(3);
-    return sym + x.toFixed(4);
+    // exact=false 表示该价格不是原币, 是经汇率换算的近似值
+    const pre = exact ? sym : '≈' + sym;
+    if (x >= 100) return pre + x.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    if (x >= 1) return pre + x.toFixed(2);
+    if (x >= 0.01) return pre + x.toFixed(3);
+    return pre + x.toFixed(4);
   }
 
   function fmtCtx(n) {
@@ -107,6 +109,7 @@
           provider: String(id).split('/')[0],
           channel: 'openrouter',
           source: 'openrouter',
+          origin_currency: 'usd',
           input_cache_hit: hit,
           input_cache_miss: miss * 1e6,
           output: out * 1e6,
@@ -217,17 +220,24 @@
 
   // ---- 渲染 ----
 
+  function originLabel(e) {
+    return e.origin_currency === 'cny' ? 'CNY' : 'USD';
+  }
+
   function channelBadge(e) {
-    if (e.channel === 'openrouter') return '<span class="badge or">OR</span>';
-    if (e.free) return '<span class="badge off">官方</span>';
-    return '<span class="badge off">官方</span>';
+    if (e.channel === 'openrouter') {
+      return '<span class="badge or" title="OpenRouter 挂牌为美元价; 显示人民币时是 ≈ 换算值">OR·USD</span>';
+    }
+    const isCny = e.origin_currency === 'cny';
+    return `<span class="badge off" title="${isCny ? '官方人民币原价(精确)' : '官方美元原价; 显示人民币时是 ≈ 换算值'}">官方·${isCny ? 'CNY' : 'USD'}</span>`;
   }
 
   function priceCell(e, field, minVal) {
     const v = e[field];
     if (v == null) return '<td class="num"><span class="muted">—</span></td>';
+    const exact = state.currency === (e.origin_currency || 'usd');
     const isMin = v === minVal;
-    return `<td class="num"><span class="price ${isMin ? 'min' : ''}">${fmtPrice(v)}</span></td>`;
+    return `<td class="num"><span class="price ${isMin ? 'min' : ''}">${fmtPrice(v, exact)}</span></td>`;
   }
 
   function render() {
@@ -260,7 +270,8 @@
       let costTd = '<td class="num"><span class="muted">—</span></td>';
       if (hasCalc && e._cost != null) {
         const cls = e._cost === mins.cost ? 'min' : e._budgetOut != null && e._budgetOut <= 0 ? 'bad' : '';
-        const t = fmtPrice(e._cost);
+        const costExact = state.currency === (e.origin_currency || 'usd');
+        const t = fmtPrice(e._cost, costExact);
         const budgetNote =
           e._budgetOut != null ? ` <span class="muted" title="预算内可承担的月输出">(${fmtCtx(e._budgetOut * 1e6)}out)</span>` : '';
         costTd = `<td class="num cost"><span class="price ${cls}">${t}</span>${budgetNote}</td>`;
