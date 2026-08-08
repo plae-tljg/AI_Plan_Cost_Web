@@ -26,21 +26,21 @@ html, body {
   background: linear-gradient(180deg, #ffffff, #f0f3f8);
   padding: 22px 20px 16px;
 }
-.top-inner { max-width: 1280px; margin: 0 auto; }
+.top-inner { max-width: 1480px; margin: 0 auto; }
 h1 { margin: 0 0 4px; font-size: 22px; }
 .sub { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
 .meta-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .layout {
-  max-width: 1280px;
+  max-width: 1480px;
   margin: 0 auto;
   padding: 16px 20px;
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 16px;
+  grid-template-columns: 248px 1fr;
+  gap: 14px;
   align-items: start;
 }
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .layout { grid-template-columns: 1fr; }
 }
 
@@ -48,29 +48,30 @@ h1 { margin: 0 0 4px; font-size: 22px; }
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
 .calc { position: sticky; top: 16px; }
-.calc h2 { margin: 0 0 6px; font-size: 15px; }
-.hint { color: var(--muted); font-size: 12px; margin: 4px 0 10px; }
+.calc h2 { margin: 0 0 6px; font-size: 14px; }
+.hint { color: var(--muted); font-size: 11px; margin: 4px 0 8px; }
 .calc label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-  margin: 8px 0 2px;
+  margin: 7px 0 2px;
 }
 .calc input[type="number"], .calc input[type="text"] {
   display: block;
   width: 100%;
-  margin-top: 3px;
-  padding: 6px 8px;
+  margin-top: 2px;
+  padding: 4px 7px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: #fff;
   color: var(--text);
   font: inherit;
+  font-size: 13px;
 }
-#calc-result { min-height: 18px; }
+#calc-result { min-height: 16px; }
 
 .btn {
   display: inline-block;
@@ -178,7 +179,7 @@ td.comment { white-space: normal; max-width: 300px; color: var(--muted); }
 .modality { color: var(--muted); font-size: 12px; }
 .modality b { color: var(--text); font-weight: 600; }
 
-footer.tips { max-width: 1240px; margin: 0 auto 24px; }
+footer.tips { max-width: 1440px; margin: 0 auto 24px; }
 footer.tips h2 { font-size: 15px; margin: 0 0 8px; }
 footer.tips ul { margin: 0 0 8px; padding-left: 18px; color: var(--muted); font-size: 13px; }
 footer.tips li { margin: 3px 0; }

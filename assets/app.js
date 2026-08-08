@@ -16,7 +16,7 @@
     meta: bundled.meta,
     currency: config.currency_default || 'usd',
     fx: bundled.meta.fx || config.fx?.fallback_usd_per_cny || 7.2,
-    sort: { key: 'output', dir: 1 },
+    sort: { key: 'featured', dir: 1 },
     filters: { q: '', provider: '', channel: '', modality: '', featured: false, free: false, multimodal: false, minSize: 0 },
     calc: null, // { in, out, hit, budget } 或 null
     live: false,
@@ -34,6 +34,7 @@
 
   const MOD_SHORT = { text: '文', image: '图', audio: '音', video: '视', file: '文件' };
   const featuredKeys = new Set((config.featured || []).map((f) => f.id));
+  const featuredRank = new Map((config.featured || []).map((f, i) => [f.id, i]));
   const familyOverrides = config.model_family_overrides || {};
 
   // 家族键: 同一模型的不同版本/渠道归到同一族, 用于精选与"更便宜"对比
@@ -44,6 +45,12 @@
 
   function isFeatured(e) {
     return featuredKeys.has(familyOf(e));
+  }
+
+  // 精选优先级的排名(按 config.featured 顺序); 未入选的排最后
+  function featuredRankOf(e) {
+    const k = familyOf(e);
+    return featuredRank.has(k) ? featuredRank.get(k) : Infinity;
   }
 
   const SIZE_RE = /(\d+(?:\.\d+)?)\s*b\b/i;
@@ -229,6 +236,15 @@
       'cost',
     ]);
     list.sort((a, b) => {
+      // 默认排序: 精选优先(按 config.featured 顺序), 族内再按输出价从低到高
+      if (key === 'featured') {
+        const ra = featuredRankOf(a);
+        const rb = featuredRankOf(b);
+        if (ra !== rb) return ra < rb ? -dir : dir;
+        const pa = a.output ?? Infinity;
+        const pb = b.output ?? Infinity;
+        return pa - pb;
+      }
       let av = a[key];
       let bv = b[key];
       if (key === 'benchmark') {
@@ -326,7 +342,8 @@
     });
 
     $('#tbody').innerHTML = rows.join('');
-    $('#row-count').textContent = `${list.length} 个模型`;
+    const sortNote = state.sort.key === 'featured' ? ' · 排序:精选优先' : '';
+    $('#row-count').textContent = `${list.length} 个模型${sortNote}`;
 
     $$('thead th[data-k]').forEach((th) => {
       const k = th.dataset.k;
@@ -377,7 +394,7 @@
     });
     $('#btn-calc-clear').addEventListener('click', () => {
       state.calc = null;
-      state.sort = { key: 'output', dir: 1 };
+      state.sort = { key: 'featured', dir: 1 };
       render();
     });
     $('#btn-refresh').addEventListener('click', async () => {
@@ -487,7 +504,7 @@
       .join('');
 
     // 默认按 输出价 升序展示, 只显示精选短名单最有用
-    state.sort = { key: 'output', dir: 1 };
+    state.sort = { key: 'featured', dir: 1 };
     buildSelects();
     bind();
     render();
