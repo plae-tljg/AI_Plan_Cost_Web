@@ -11,10 +11,11 @@
     <div class="top-inner">
       <h1>LLM 价格对比</h1>
       <p class="sub">
-        统一基准：USD / 每百万 token · 输入(命中缓存) / 输入(未命中) / 输出 三列 · OpenRouter 全量 + 官方源
+        统一基准：每百万 token · 输入(命中缓存) / 输入(未命中) / 输出 三列 · 货币 USD/CNY 可切换
       </p>
       <div class="meta-row">
         <span id="meta-updated" class="chip">加载中…</span>
+        <span id="meta-fx" class="chip"></span>
         <span id="meta-live" class="chip hidden">OpenRouter 实时直连</span>
         <button id="btn-refresh" class="chip btn">刷新(直连 OpenRouter)</button>
       </div>
@@ -28,7 +29,7 @@
       <label>每月输入 token (百万) <input id="calc-in" type="number" min="0" step="1" value="100" /></label>
       <label>每月输出 token (百万) <input id="calc-out" type="number" min="0" step="1" value="10" /></label>
       <label>缓存命中比例 % <input id="calc-hit" type="number" min="0" max="100" step="1" value="0" /></label>
-      <label>月预算 USD (选填) <input id="calc-budget" type="number" min="0" step="1" value="" placeholder="留空则只看成本" /></label>
+      <label>月预算 (选填, 单位=当前货币) <input id="calc-budget" type="number" min="0" step="1" value="" placeholder="留空则只看成本" /></label>
       <button id="btn-calc" class="btn primary">应用工作量</button>
       <button id="btn-calc-clear" class="btn ghost">清除</button>
       <p class="hint" id="calc-result"></p>

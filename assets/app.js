@@ -15,7 +15,7 @@
     official: bundled.official,
     meta: bundled.meta,
     currency: config.currency_default || 'usd',
-    fx: config.fx?.usd_per_cny || 7.2,
+    fx: bundled.meta.fx || config.fx?.fallback_usd_per_cny || 7.2,
     sort: { key: 'output', dir: 1 },
     filters: { q: '', provider: '', channel: '', modality: '', featured: false },
     calc: null, // { in, out, hit, budget } 或 null
@@ -27,6 +27,10 @@
 
   const dataCounts = () =>
     `OpenRouter ${state.models.length} 个 · 官方 ${state.official.length} 个`;
+
+  const updateFxChip = () => {
+    $('#meta-fx').textContent = `1 USD ≈ ¥${state.fx.toFixed(2)} (自动抓取)`;
+  };
 
   const MOD_SHORT = { text: '文', image: '图', audio: '音', video: '视', file: '文件' };
   const featuredKeys = new Set((config.featured || []).map((f) => f.id));
@@ -289,11 +293,19 @@
 
   function bind() {
     $('#btn-calc').addEventListener('click', () => {
+      const budgetInput = parseFloat($('#calc-budget').value) || null;
+      // 预算输入按当前展示货币理解; 内部计算统一用 USD
+      const budgetUSD =
+        budgetInput == null
+          ? null
+          : state.currency === 'cny'
+            ? budgetInput / state.fx
+            : budgetInput;
       state.calc = {
         in: parseFloat($('#calc-in').value) || 0,
         out: parseFloat($('#calc-out').value) || 0,
         hit: Math.min(100, Math.max(0, parseFloat($('#calc-hit').value) || 0)),
-        budget: parseFloat($('#calc-budget').value) || null,
+        budget: budgetUSD,
       };
       state.sort = { key: 'cost', dir: 1 };
       render();
@@ -345,7 +357,10 @@
     });
     $('#f-fx').addEventListener('change', (ev) => {
       const v = parseFloat(ev.target.value);
-      if (v > 0) state.fx = v;
+      if (v > 0) {
+        state.fx = v;
+        updateFxChip();
+      }
       render();
     });
     $$('thead th[data-k]').forEach((th) => {
@@ -361,6 +376,7 @@
   function init() {
     $('#tips').innerHTML = (config.tips || []).map((t) => `<li>${t}</li>`).join('');
     $('#meta-updated').textContent = `缓存数据 ${dataCounts()}`;
+    updateFxChip();
     $('#f-fx').value = state.fx;
     $('#f-currency').value = state.currency;
 
