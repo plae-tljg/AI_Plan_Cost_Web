@@ -17,7 +17,7 @@
     currency: config.currency_default || 'usd',
     fx: bundled.meta.fx || config.fx?.fallback_usd_per_cny || 7.2,
     sort: { key: 'output', dir: 1 },
-    filters: { q: '', provider: '', channel: '', modality: '', featured: false },
+    filters: { q: '', provider: '', channel: '', modality: '', featured: false, free: false, multimodal: false },
     calc: null, // { in, out, hit, budget } 或 null
     live: false,
   };
@@ -37,6 +37,24 @@
 
   function isFeatured(e) {
     return e.channel === 'openrouter' && featuredKeys.has(`${e.provider}/${e.model}`);
+  }
+
+  function isMultimodal(e) {
+    return (e.modality || []).some((m) => m !== 'text');
+  }
+
+  function commentFor(e) {
+    const curated = (config.model_comments || {})[`${e.provider}/${e.model}`] || '';
+    const tags = [];
+    if (e.free) tags.push('免费');
+    if (isMultimodal(e)) tags.push('多模态');
+    if (!e.free && e.output != null && e.output < 0.1) tags.push('超低价');
+    if (e.benchmark === false) tags.push('无benchmark·质量未知');
+    if (e.channel === 'official') tags.push('官方直销');
+    const parts = [];
+    if (curated) parts.push(curated);
+    if (tags.length) parts.push(tags.join('、'));
+    return parts.join(' · ');
   }
 
   function fmtPrice(v) {
@@ -133,7 +151,7 @@
   }
 
   function filtered() {
-    const { q, provider, channel, modality, featured } = state.filters;
+    const { q, provider, channel, modality, featured, free, multimodal } = state.filters;
     const ql = q.trim().toLowerCase();
     let list = [...state.models, ...state.official];
     list = list.filter((e) => {
@@ -141,6 +159,8 @@
       if (channel && e.channel !== channel) return false;
       if (modality && !(e.modality || []).includes(modality)) return false;
       if (featured && !isFeatured(e)) return false;
+      if (free && !e.free) return false;
+      if (multimodal && !isMultimodal(e)) return false;
       if (ql) {
         const hay = `${e.model} ${e.provider} ${e.note || ''} ${e.channel}`.toLowerCase();
         if (!hay.includes(ql)) return false;
@@ -256,7 +276,7 @@
         <td class="num">${fmtCtx(e.context)}</td>
         <td class="modality">${mods}</td>
         <td>${benchBadge}</td>
-        <td class="muted" style="white-space:normal">${e.note || ''}</td>
+        <td class="comment">${commentFor(e)}${e.note ? ` <span class="muted">(${e.note})</span>` : ''}</td>
       </tr>`;
     });
 
@@ -331,6 +351,28 @@
       }
     });
 
+    $$('.preset-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.preset;
+        const map = { free: 'free', multimodal: 'multimodal', cheap: 'featured' };
+        state.filters = { ...state.filters, free: false, multimodal: false, featured: false };
+        if (p !== 'clear' && map[p]) state.filters[map[p]] = true;
+        updatePresetActive();
+        render();
+      });
+    });
+
+    $$('.wl-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const w = (config.workload_presets || {})[btn.dataset.wl];
+        if (!w) return;
+        $('#calc-in').value = w.in;
+        $('#calc-out').value = w.out;
+        $('#calc-hit').value = w.hit;
+        $('#btn-calc').click();
+      });
+    });
+
     $('#f-search').addEventListener('input', (ev) => {
       state.filters.q = ev.target.value;
       render();
@@ -373,12 +415,27 @@
     });
   }
 
+  function updatePresetActive() {
+    const act = { free: state.filters.free, multimodal: state.filters.multimodal, cheap: state.filters.featured };
+    $$('.preset-btn').forEach((btn) => {
+      const p = btn.dataset.preset;
+      btn.classList.toggle('active', p !== 'clear' && !!act[p]);
+    });
+  }
+
   function init() {
     $('#tips').innerHTML = (config.tips || []).map((t) => `<li>${t}</li>`).join('');
     $('#meta-updated').textContent = `缓存数据 ${dataCounts()}`;
     updateFxChip();
     $('#f-fx').value = state.fx;
     $('#f-currency').value = state.currency;
+
+    $('#workloads').innerHTML = Object.entries(config.workload_presets || {})
+      .map(
+        ([k, w]) =>
+          `<button class="chip btn wl-btn" data-wl="${k}" title="${w.desc || ''}">${w.label || k}</button>`,
+      )
+      .join('');
 
     // 默认按 输出价 升序展示, 只显示精选短名单最有用
     state.sort = { key: 'output', dir: 1 };
